@@ -13,6 +13,7 @@ from erpnext.accounts.doctype.payment_request.payment_request import make_paymen
 from erpnext.accounts.doctype.loyalty_program.loyalty_program import validate_loyalty_points
 from erpnext.stock.doctype.serial_no.serial_no import get_pos_reserved_serial_nos, get_serial_nos
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice, get_bank_cash_account, update_multi_mode_option, get_mode_of_payment_info
+from erpnext.accounts.doctype.pos_invoice_merge_log.pos_invoice_merge_log import consolidate_pos_invoices, unconsolidate_pos_invoices
 
 from six import iteritems
 
@@ -56,6 +57,7 @@ class POSInvoice(SalesInvoice):
 		if self.redeem_loyalty_points and self.loyalty_points:
 			self.apply_loyalty_points()
 		self.check_phone_payments()
+		consolidate_pos_invoices([{'pos_invoice': self.name, 'posting_date': self.posting_date, 'grand_total': self.grand_total, 'customer': self.customer}])
 		self.set_status(update=True)
 	
 	def before_cancel(self):
@@ -324,8 +326,8 @@ class POSInvoice(SalesInvoice):
 
 			if selling_price_list:
 				self.set('selling_price_list', selling_price_list)
-			if customer_currency != profile.get('currency'):
-				self.set('currency', customer_currency)
+			# if customer_currency != profile.get('currency'):
+			# 	self.set('currency', customer_currency)
 
 			# set pos values in items
 			for item in self.get("items"):
