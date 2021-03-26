@@ -98,13 +98,13 @@ def customer_query(doctype, txt, searchfield, start, page_len, filters):
 	return frappe.db.sql("""select {fields} from `tabCustomer` as customer
 		left outer join `tabDynamic Link` as dl on dl.link_name = customer.name
 		and dl.link_doctype = 'Customer' and dl.parenttype = 'Contact'
-		inner join `tabContact Phone` as contact_phone on contact_phone.parent = dl.parent
+		left outer join `tabContact Phone` as contact_phone on contact_phone.parent = dl.parent
 		where customer.docstatus < 2
 			and ({scond}) and customer.disabled=0
 			{fcond} {mcond}
 		order by
-			if(locate(%(_txt)s, name), locate(%(_txt)s, customer.name), 99999),
-			if(locate(%(_txt)s, customer_name), locate(%(_txt)s, customer.customer_name), 99999),
+			if(locate(%(_txt)s, customer.name), locate(%(_txt)s, customer.name), 99999),
+			if(locate(%(_txt)s, customer.customer_name), locate(%(_txt)s, customer.customer_name), 99999),
 			customer.idx desc,
 			customer.name, customer.customer_name
 		limit %(start)s, %(page_len)s""".format(**{
