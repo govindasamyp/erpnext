@@ -56,6 +56,8 @@ class POSInvoice(SalesInvoice):
 		self.validate_loyalty_transaction()
 
 	def on_submit(self):
+		if self.pos_profile and not frappe.db.get_value('POS Profile', self.pos_profile, 'allow_credit_sales') and self.outstanding_amount > 0:
+			frappe.throw('Credit Sales is not allowed in the PoS')
 		# create the loyalty point ledger entry if the customer is enrolled in any loyalty program
 		if self.loyalty_program:
 			self.make_loyalty_point_entry()
