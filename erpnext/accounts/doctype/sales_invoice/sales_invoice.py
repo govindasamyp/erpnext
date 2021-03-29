@@ -253,7 +253,7 @@ class SalesInvoice(SellingController):
 				frappe.throw(msg, title=_("Not Allowed"))
 
 	def before_cancel(self):
-		self.check_if_consolidated_invoice()
+		# self.check_if_consolidated_invoice()
 
 		super(SalesInvoice, self).before_cancel()
 		self.update_time_sheet(None)
