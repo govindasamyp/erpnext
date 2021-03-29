@@ -22,6 +22,15 @@ class POSInvoice(SalesInvoice):
 		super(POSInvoice, self).__init__(*args, **kwargs)
 
 	def validate(self):
+		
+		if not self.is_return and self.total_qty < 0:
+			self.is_return = 1
+			default_sales_return_debit_to_account = frappe.db.get_value('Company', self.company, 'default_sales_return_debit_to_account')
+			if default_sales_return_debit_to_account:
+				self.debit_to = default_sales_return_debit_to_account
+			else:
+				frappe.throw('Please set "Default Sales Return Debit To Account" in ' + self.company + ' Company.')
+
 		if not cint(self.is_pos):
 			frappe.throw(_("POS Invoice should have {} field checked.").format(frappe.bold("Include Payment")))
 
