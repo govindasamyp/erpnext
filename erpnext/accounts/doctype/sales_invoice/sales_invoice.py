@@ -164,12 +164,10 @@ class SalesInvoice(SellingController):
 			cost_center = frappe.db.get_value('POS Profile', self.pos_profile, 'cost_center')
 			self.branch = branch
 			self.cost_center = cost_center
-
-			for item in self.items:
-				if 'branch' in item:
-					item.branch = branch
-				if 'cost_center' in item:
-					item.cost_center = cost_center
+		
+			for item in self.get("items"):
+				item.set('branch', branch)
+				item.set('cost_center', cost_center)
 
 		if not self.auto_repeat:
 			frappe.get_doc('Authorization Control').validate_approving_authority(self.doctype,

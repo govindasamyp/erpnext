@@ -67,11 +67,9 @@ class POSInvoice(SalesInvoice):
 			self.branch = branch
 			self.cost_center = cost_center
 		
-		for item in self.items:
-			if 'branch' in item:
-				item.branch = branch
-			if 'cost_center' in item:
-				item.cost_center = cost_center
+			for item in self.get("items"):
+				item.set('branch', branch)
+				item.set('cost_center', cost_center)
 
 		# create the loyalty point ledger entry if the customer is enrolled in any loyalty program
 		if self.loyalty_program:
