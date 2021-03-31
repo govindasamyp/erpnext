@@ -59,11 +59,19 @@ class POSInvoice(SalesInvoice):
 		if self.pos_profile and not frappe.db.get_value('POS Profile', self.pos_profile, 'allow_credit_sales') and self.outstanding_amount > 0:
 			frappe.throw('Credit Sales is not allowed in the PoS')
 
+		branch = None
+		cost_center = None
 		if self.pos_profile:
 			branch = frappe.db.get_value('POS Profile', self.pos_profile, 'branch')
 			cost_center = frappe.db.get_value('POS Profile', self.pos_profile, 'cost_center')
 			self.branch = branch
 			self.cost_center = cost_center
+		
+		for item in self.items:
+			if 'branch' in item:
+				item.branch = branch
+			if 'cost_center' in item:
+				item.cost_center = cost_center
 
 		# create the loyalty point ledger entry if the customer is enrolled in any loyalty program
 		if self.loyalty_program:

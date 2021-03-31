@@ -159,6 +159,18 @@ class SalesInvoice(SellingController):
 	def on_submit(self):
 		self.validate_pos_paid_amount()
 
+		if self.is_pos == 1 and self.pos_profile:
+			branch = frappe.db.get_value('POS Profile', self.pos_profile, 'branch')
+			cost_center = frappe.db.get_value('POS Profile', self.pos_profile, 'cost_center')
+			self.branch = branch
+			self.cost_center = cost_center
+
+			for item in self.items:
+				if 'branch' in item:
+					item.branch = branch
+				if 'cost_center' in item:
+					item.cost_center = cost_center
+
 		if not self.auto_repeat:
 			frappe.get_doc('Authorization Control').validate_approving_authority(self.doctype,
 				self.company, self.base_grand_total, self)
@@ -1253,6 +1265,7 @@ class SalesInvoice(SellingController):
 				"posting_date": self.posting_date
 			})
 			doc.flags.ignore_permissions = 1
+			import pdb; pdb.set_trace()
 			doc.save()
 			points_to_redeem -= redeemed_points
 			if points_to_redeem < 1: # since points_to_redeem is integer
