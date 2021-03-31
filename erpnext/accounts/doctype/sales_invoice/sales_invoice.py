@@ -1263,7 +1263,6 @@ class SalesInvoice(SellingController):
 				"posting_date": self.posting_date
 			})
 			doc.flags.ignore_permissions = 1
-			import pdb; pdb.set_trace()
 			doc.save()
 			points_to_redeem -= redeemed_points
 			if points_to_redeem < 1: # since points_to_redeem is integer
