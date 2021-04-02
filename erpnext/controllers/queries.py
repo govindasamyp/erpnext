@@ -86,18 +86,27 @@ def customer_query(doctype, txt, searchfield, start, page_len, filters):
 
 	fields = get_fields("Customer", fields)
 
+	add_field = []
+	for field in fields:
+		add_field.append('customer.' + field)
+	fields = add_field
+	fields.append('contact_phone.phone')
 	searchfields = frappe.get_meta("Customer").get_search_fields()
-	searchfields = " or ".join([field + " like %(txt)s" for field in searchfields])
+	searchfields = " or ".join(['customer.' + field + " like %(txt)s" for field in searchfields])
+	searchfields += " or contact_phone.phone like %(txt)s "
 
-	return frappe.db.sql("""select {fields} from `tabCustomer`
-		where docstatus < 2
-			and ({scond}) and disabled=0
+	return frappe.db.sql("""select {fields} from `tabCustomer` as customer
+		left outer join `tabDynamic Link` as dl on dl.link_name = customer.name
+		and dl.link_doctype = 'Customer' and dl.parenttype = 'Contact'
+		left outer join `tabContact Phone` as contact_phone on contact_phone.parent = dl.parent
+		where customer.docstatus < 2
+			and ({scond}) and customer.disabled=0
 			{fcond} {mcond}
 		order by
-			if(locate(%(_txt)s, name), locate(%(_txt)s, name), 99999),
-			if(locate(%(_txt)s, customer_name), locate(%(_txt)s, customer_name), 99999),
-			idx desc,
-			name, customer_name
+			if(locate(%(_txt)s, customer.name), locate(%(_txt)s, customer.name), 99999),
+			if(locate(%(_txt)s, customer.customer_name), locate(%(_txt)s, customer.customer_name), 99999),
+			customer.idx desc,
+			customer.name, customer.customer_name
 		limit %(start)s, %(page_len)s""".format(**{
 			"fields": ", ".join(fields),
 			"scond": searchfields,

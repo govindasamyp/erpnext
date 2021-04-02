@@ -13,6 +13,7 @@ from erpnext.accounts.doctype.payment_request.payment_request import make_paymen
 from erpnext.accounts.doctype.loyalty_program.loyalty_program import validate_loyalty_points
 from erpnext.stock.doctype.serial_no.serial_no import get_pos_reserved_serial_nos, get_serial_nos
 from erpnext.accounts.doctype.sales_invoice.sales_invoice import SalesInvoice, get_bank_cash_account, update_multi_mode_option, get_mode_of_payment_info
+from erpnext.accounts.doctype.pos_invoice_merge_log.pos_invoice_merge_log import consolidate_pos_invoices, unconsolidate_pos_invoices
 
 from six import iteritems
 
@@ -21,6 +22,15 @@ class POSInvoice(SalesInvoice):
 		super(POSInvoice, self).__init__(*args, **kwargs)
 
 	def validate(self):
+		
+		if not self.is_return and self.total_qty < 0:
+			self.is_return = 1
+			default_sales_return_debit_to_account = frappe.db.get_value('Company', self.company, 'default_sales_return_debit_to_account')
+			if default_sales_return_debit_to_account:
+				self.debit_to = default_sales_return_debit_to_account
+			else:
+				frappe.throw('Please set "Default Sales Return Debit To Account" in ' + self.company + ' Company.')
+
 		if not cint(self.is_pos):
 			frappe.throw(_("POS Invoice should have {} field checked.").format(frappe.bold("Include Payment")))
 
@@ -46,6 +56,21 @@ class POSInvoice(SalesInvoice):
 		self.validate_loyalty_transaction()
 
 	def on_submit(self):
+		if self.pos_profile and not frappe.db.get_value('POS Profile', self.pos_profile, 'allow_credit_sales') and self.outstanding_amount > 0:
+			frappe.throw('Credit Sales is not allowed in the PoS')
+
+		branch = None
+		cost_center = None
+		if self.pos_profile:
+			branch = frappe.db.get_value('POS Profile', self.pos_profile, 'branch')
+			cost_center = frappe.db.get_value('POS Profile', self.pos_profile, 'cost_center')
+			self.branch = branch
+			self.cost_center = cost_center
+		
+			for item in self.get("items"):
+				item.set('branch', branch)
+				item.set('cost_center', cost_center)
+
 		# create the loyalty point ledger entry if the customer is enrolled in any loyalty program
 		if self.loyalty_program:
 			self.make_loyalty_point_entry()
@@ -56,6 +81,7 @@ class POSInvoice(SalesInvoice):
 		if self.redeem_loyalty_points and self.loyalty_points:
 			self.apply_loyalty_points()
 		self.check_phone_payments()
+		consolidate_pos_invoices([{'pos_invoice': self.name, 'posting_date': self.posting_date, 'grand_total': self.grand_total, 'customer': self.customer}])
 		self.set_status(update=True)
 
 	def before_cancel(self):
