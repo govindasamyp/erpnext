@@ -22,6 +22,20 @@ class POSInvoice(SalesInvoice):
 		super(POSInvoice, self).__init__(*args, **kwargs)
 
 	def validate(self):
+
+		if not self.pos_profile:
+			frappe.throw('Please select POS Profile')
+
+		pos_profile_warehouse = frappe.db.get_value('POS Profile', self.pos_profile, 'warehouse')
+
+		if not pos_profile_warehouse:
+			frappe.throw('Please set Warehouse in POS Profile')
+
+		for item in self.get("items"):
+				if item.get('warehouse') != pos_profile_warehouse:
+					frappe.throw('The linked POS Profile has the ' + pos_profile_warehouse + ' warehouse while you chose ' + item.get('warehouse') + ' warehouse in the Item' )
+
+
 		
 		if not self.is_return and self.total_qty < 0:
 			self.is_return = 1
