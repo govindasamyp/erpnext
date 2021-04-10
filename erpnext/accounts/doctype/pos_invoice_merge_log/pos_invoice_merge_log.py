@@ -120,7 +120,7 @@ class POSInvoiceMergeLog(Document):
 						i.qty = i.qty + item.qty
 
 				if not found:
-					item.rate = item.net_rate
+					# item.rate = item.net_rate
 					item.price_list_rate = 0
 					si_item = map_child_doc(item, invoice, {"doctype": "Sales Invoice Item"})
 					items.append(si_item)
