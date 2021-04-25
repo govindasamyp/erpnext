@@ -46,9 +46,5 @@ def validate_disabled(doc):
 		frappe.throw(_("Disabled template must not be default template"))
 
 def validate_for_tax_category(doc):
-<<<<<<< HEAD
 	if frappe.db.exists(doc.doctype, {"company": doc.company, "tax_category": doc.tax_category, "disabled": 0, "name": {"!=", doc.name}}):
-=======
-	if frappe.db.exists(doc.doctype, {"company": doc.company, "tax_category": doc.tax_category, "disabled": 0, "name": ["!=", doc.name]}):
->>>>>>> db76612462bf8f5e8d739e791f439d12f36becb8
 		frappe.throw(_("A template with tax category {0} already exists. Only one template is allowed with each tax category").format(frappe.bold(doc.tax_category)))
