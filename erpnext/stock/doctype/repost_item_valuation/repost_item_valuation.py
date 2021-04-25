@@ -39,6 +39,7 @@ class RepostItemValuation(Document):
 		frappe.enqueue(repost, timeout=1800, queue='long',
 			job_name='repost_sle', now=frappe.flags.in_test, doc=self)
 
+	@frappe.whitelist()
 	def restart_reposting(self):
 		self.set_status('Queued')
 		frappe.enqueue(repost, timeout=1800, queue='long',
@@ -126,7 +127,7 @@ def repost_entries():
 		check_if_stock_and_account_balance_synced(today(), d.name)
 
 def get_repost_item_valuation_entries():
-	date = add_to_date(today(), hours=-12)
+	date = add_to_date(today(), hours=-3)
 
 	return frappe.db.sql(""" SELECT name from `tabRepost Item Valuation`
 		WHERE status != 'Completed' and creation <= %s and docstatus = 1
