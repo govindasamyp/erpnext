@@ -126,16 +126,16 @@ erpnext.PointOfSale.ItemCart = class {
 			},
 			cols: 5,
 			keys: [
-				[ 1, 2, 3, 'Quantity' ],
-				[ 4, 5, 6, 'Discount' ],
-				[ 7, 8, 9, 'Rate' ],
-				[ '.', 0, 'Delete', 'Remove' ]
+				[1, 2, 3, 'Quantity'],
+				[4, 5, 6, 'Discount'],
+				[7, 8, 9, 'Rate'],
+				['.', 0, 'Delete', 'Remove']
 			],
 			css_classes: [
-				[ '', '', '', 'col-span-2' ],
-				[ '', '', '', 'col-span-2' ],
-				[ '', '', '', 'col-span-2' ],
-				[ '', '', '', 'col-span-2 remove-btn' ]
+				['', '', '', 'col-span-2'],
+				['', '', '', 'col-span-2'],
+				['', '', '', 'col-span-2'],
+				['', '', '', 'col-span-2 remove-btn']
 			],
 			fieldnames_map: { 'Quantity': 'qty', 'Discount': 'discount_percentage' }
 		})
@@ -162,14 +162,14 @@ erpnext.PointOfSale.ItemCart = class {
 			me.toggle_customer_info(false);
 		});
 
-		this.$customer_section.on('click', '.customer-display', function(e) {
+		this.$customer_section.on('click', '.customer-display', function (e) {
 			if ($(e.target).closest('.reset-customer-btn').length) return;
 
 			const show = me.$cart_container.is(':visible');
 			me.toggle_customer_info(show);
 		});
 
-		this.$cart_items_wrapper.on('click', '.cart-item-wrapper', function() {
+		this.$cart_items_wrapper.on('click', '.cart-item-wrapper', function () {
 			const $cart_item = $(this);
 
 			me.toggle_item_highlight(this);
@@ -188,7 +188,7 @@ erpnext.PointOfSale.ItemCart = class {
 			this.numpad_value = '';
 		});
 
-		this.$component.on('click', '.checkout-btn', function() {
+		this.$component.on('click', '.checkout-btn', function () {
 			if ($(this).attr('style').indexOf('--blue-500') == -1) return;
 
 			me.events.checkout();
@@ -205,7 +205,7 @@ erpnext.PointOfSale.ItemCart = class {
 		this.$component.on('click', '.add-discount-wrapper', () => {
 			const can_edit_discount = this.$add_discount_elem.find('.edit-discount-btn').length;
 
-			if(!this.discount_field || can_edit_discount) this.show_discount_control();
+			if (!this.discount_field || can_edit_discount) this.show_discount_control();
 		});
 
 		frappe.ui.form.on("POS Invoice", "paid_amount", frm => {
@@ -308,7 +308,7 @@ erpnext.PointOfSale.ItemCart = class {
 				options: 'Customer',
 				placeholder: __('Search by customer name, phone, email.'),
 				get_query: () => query,
-				onchange: function() {
+				onchange: function () {
 					if (this.value) {
 						const frm = me.events.get_frm();
 						frappe.dom.freeze();
@@ -334,25 +334,37 @@ erpnext.PointOfSale.ItemCart = class {
 	fetch_customer_details(customer) {
 		if (customer) {
 			return new Promise((resolve) => {
-				frappe.db.get_value('Customer', customer, ["email_id", "mobile_no", "image", "loyalty_program"]).then(({ message }) => {
+				frappe.db.get_value('Customer', customer, ["email_id", "mobile_no","territory", "image", "loyalty_program"]).then(({ message }) => {
 					const { loyalty_program } = message;
 					// if loyalty program then fetch loyalty points too
-					if (loyalty_program) {
-						frappe.call({
-							method: "erpnext.accounts.doctype.loyalty_program.loyalty_program.get_loyalty_program_details_with_points",
-							args: { customer, loyalty_program, "silent": true },
-							callback: (r) => {
-								const { loyalty_points, conversion_factor } = r.message;
-								if (!r.exc) {
-									this.customer_info = { ...message, customer, loyalty_points, conversion_factor };
-									resolve();
-								}
+					
+					frappe.call({
+						method: "rpricemill.custom.get_customer_data",
+						args: { customer : customer, company:loyalty_program, freeze: true},
+						callback: (r) => {
+							const { total_unpaid } = r.message;
+							if (!r.exc) {
+								this.customer_info = { ...message,total_unpaid };
 							}
-						});
-					} else {
-						this.customer_info = { ...message, customer };
-						resolve();
-					}
+							if (loyalty_program) {
+								frappe.call({
+									method: "erpnext.accounts.doctype.loyalty_program.loyalty_program.get_loyalty_program_details_with_points",
+									args: { customer, loyalty_program, "silent": true },
+									callback: (r) => {
+										const { loyalty_points, conversion_factor } = r.message;
+										if (!r.exc) {
+											this.customer_info = { ...message, customer, loyalty_points, conversion_factor,total_unpaid };
+											resolve();
+										}
+									}
+								});
+							} else {
+								this.customer_info = { ...message, customer,total_unpaid };	
+								resolve();
+							}
+						}
+
+					});
 				});
 			});
 		} else {
@@ -376,7 +388,7 @@ erpnext.PointOfSale.ItemCart = class {
 				fieldtype: 'Data',
 				placeholder: __('Enter discount percentage.'),
 				input_class: 'input-xs',
-				onchange: function() {
+				onchange: function () {
 					const frm = me.events.get_frm();
 					if (flt(this.value) != 0) {
 						frappe.model.set_value(frm.doc.doctype, frm.doc.name, 'additional_discount_percentage', flt(this.value));
@@ -420,7 +432,7 @@ erpnext.PointOfSale.ItemCart = class {
 
 	update_customer_section() {
 		const me = this;
-		const { customer, email_id='', mobile_no='', image } = this.customer_info || {};
+		const { customer, email_id = '', mobile_no = '', image } = this.customer_info || {};
 
 		if (customer) {
 			this.$customer_section.html(
@@ -834,6 +846,8 @@ erpnext.PointOfSale.ItemCart = class {
 					<div class="mobile_no-field"></div>
 					<div class="loyalty_program-field"></div>
 					<div class="loyalty_points-field"></div>
+					<div class="territory-field"></div>
+					<div class="total_unpaid-field"></div>
 				</div>
 				<div class="transactions-label">Recent Transactions</div>`
 			);
@@ -857,34 +871,50 @@ erpnext.PointOfSale.ItemCart = class {
 	render_customer_fields() {
 		const $customer_form = this.$customer_section.find('.customer-fields-container');
 
+
+
 		const dfs = [{
 			fieldname: 'email_id',
 			label: __('Email'),
 			fieldtype: 'Data',
 			options: 'email',
 			placeholder: __("Enter customer's email")
-		},{
+		}, {
 			fieldname: 'mobile_no',
 			label: __('Phone Number'),
 			fieldtype: 'Data',
 			placeholder: __("Enter customer's phone number")
-		},{
+		}, {
 			fieldname: 'loyalty_program',
 			label: __('Loyalty Program'),
 			fieldtype: 'Link',
 			options: 'Loyalty Program',
 			placeholder: __("Select Loyalty Program")
 		},{
+			fieldname: 'territory',
+			label: __('Territory'),
+			fieldtype: 'Link',
+			options: 'Territory',
+			placeholder: __("Select Territory")
+		}, {
 			fieldname: 'loyalty_points',
 			label: __('Loyalty Points'),
 			fieldtype: 'Data',
 			read_only: 1
-		}];
+		},{
+			fieldname: 'total_unpaid',
+			label: __('Outstanding'),
+			fieldtype: 'Data',
+			read_only: 1
+		}
+
+	];
 
 		const me = this;
 		dfs.forEach(df => {
 			this[`customer_${df.fieldname}_field`] = frappe.ui.form.make_control({
-				df: { ...df,
+				df: {
+					...df,
 					onchange: handle_customer_field_change,
 				},
 				parent: $customer_form.find(`.${df.fieldname}-field`),
@@ -906,7 +936,7 @@ erpnext.PointOfSale.ItemCart = class {
 						value: this.value
 					},
 					callback: (r) => {
-						if(!r.exc) {
+						if (!r.exc) {
 							me.customer_info[this.df.fieldname] = this.value;
 							frappe.show_alert({
 								message: __("Customer contact updated successfully."),
@@ -921,37 +951,42 @@ erpnext.PointOfSale.ItemCart = class {
 	}
 
 	fetch_customer_transactions() {
-		frappe.db.get_list('POS Invoice', {
-			filters: { customer: this.customer_info.customer, docstatus: 1 },
-			fields: ['name', 'grand_total', 'status', 'posting_date', 'posting_time', 'currency'],
-			limit: 20
-		}).then((res) => {
-			const transaction_container = this.$customer_section.find('.customer-transactions');
+		frappe.call({
+			method: 'rpricemill.custom.get_recent_items_from_pos',
+			args: {
+				filters: this.customer_info.customer,
+				fields: ['name', 'grand_total', 'status', 'posting_date', 'posting_time', 'currency'],
+				limit: 20,
+				freeze :true
+			},
+			callback: (res) => {
+				res = res.message
+				const transaction_container = this.$customer_section.find('.customer-transactions');
 
-			if (!res.length) {
-				transaction_container.html(
-					`<div class="no-transactions-placeholder">No recent transactions found</div>`
-				)
-				return;
-			};
-
-			const elapsed_time = moment(res[0].posting_date+" "+res[0].posting_time).fromNow();
-			this.$customer_section.find('.customer-desc').html(`Last transacted ${elapsed_time}`);
-
-			res.forEach(invoice => {
-				const posting_datetime = moment(invoice.posting_date+" "+invoice.posting_time).format("Do MMMM, h:mma");
-				let indicator_color = {
-					'Paid': 'green',
-					'Draft': 'red',
-					'Return': 'gray',
-					'Consolidated': 'blue'
+				if (!res.length) {
+					transaction_container.html(
+						`<div class="no-transactions-placeholder">No recent transactions found</div>`
+					)
+					return;
 				};
 
-				transaction_container.append(
-					`<div class="invoice-wrapper" data-invoice-name="${escape(invoice.name)}">
+				const elapsed_time = moment(res[0].posting_date + " " + res[0].posting_time).fromNow();
+				this.$customer_section.find('.customer-desc').html(`Last transacted ${elapsed_time}`);
+
+				res.forEach(invoice => {
+					const posting_datetime = moment(invoice.posting_date + " " + invoice.posting_time).format("Do MMMM, h:mma");
+					let indicator_color = {
+						'Paid': 'green',
+						'Draft': 'red',
+						'Return': 'gray',
+						'Consolidated': 'blue'
+					};
+
+					transaction_container.append(
+						`<div class="invoice-wrapper" data-invoice-name="${escape(invoice.name)}">
 						<div class="invoice-name-date">
-							<div class="invoice-name">${invoice.name}</div>
-							<div class="invoice-date">${posting_datetime}</div>
+							<div class="invoice-name">${invoice.name}  ${invoice.branch}</div>
+							<div class="invoice-date">${posting_datetime}    ${invoice.day_count}</div>
 						</div>
 						<div class="invoice-total-status">
 							<div class="invoice-total">
@@ -965,9 +1000,57 @@ erpnext.PointOfSale.ItemCart = class {
 						</div>
 					</div>
 					<div class="seperator"></div>`
-				)
-			});
+					)
+				});
+			}
 		});
+		// frappe.db.get_list('POS Invoice', {
+		// 	filters: { customer: this.customer_info.customer, docstatus: 1 },
+		// 	fields: ['name', 'grand_total', 'status', 'posting_date', 'posting_time', 'currency'],
+		// 	limit: 20
+		// }).then((res) => {
+		// 	const transaction_container = this.$customer_section.find('.customer-transactions');
+
+		// 	if (!res.length) {
+		// 		transaction_container.html(
+		// 			`<div class="no-transactions-placeholder">No recent transactions found</div>`
+		// 		)
+		// 		return;
+		// 	};
+
+		// 	const elapsed_time = moment(res[0].posting_date + " " + res[0].posting_time).fromNow();
+		// 	this.$customer_section.find('.customer-desc').html(`Last transacted ${elapsed_time}`);
+
+		// 	res.forEach(invoice => {
+		// 		const posting_datetime = moment(invoice.posting_date + " " + invoice.posting_time).format("Do MMMM, h:mma");
+		// 		let indicator_color = {
+		// 			'Paid': 'green',
+		// 			'Draft': 'red',
+		// 			'Return': 'gray',
+		// 			'Consolidated': 'blue'
+		// 		};
+
+		// 		transaction_container.append(
+		// 			`<div class="invoice-wrapper" data-invoice-name="${escape(invoice.name)}">
+		// 				<div class="invoice-name-date">
+		// 					<div class="invoice-name">${invoice.name}</div>
+		// 					<div class="invoice-date">${posting_datetime}</div>
+		// 				</div>
+		// 				<div class="invoice-total-status">
+		// 					<div class="invoice-total">
+		// 						${format_currency(invoice.grand_total, invoice.currency, 0) || 0}
+		// 					</div>
+		// 					<div class="invoice-status">
+		// 						<span class="indicator-pill whitespace-nowrap ${indicator_color[invoice.status]}">
+		// 							<span>${invoice.status}</span>
+		// 						</span>
+		// 					</div>
+		// 				</div>
+		// 			</div>
+		// 			<div class="seperator"></div>`
+		// 		)
+		// 	});
+		// });
 	}
 
 	load_invoice() {
@@ -989,7 +1072,7 @@ erpnext.PointOfSale.ItemCart = class {
 
 		this.update_totals_section(frm);
 
-		if(frm.doc.docstatus === 1) {
+		if (frm.doc.docstatus === 1) {
 			this.$totals_section.find('.checkout-btn').css('display', 'none');
 			this.$totals_section.find('.edit-cart-btn').css('display', 'none');
 		} else {

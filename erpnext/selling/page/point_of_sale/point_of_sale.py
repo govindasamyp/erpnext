@@ -257,4 +257,6 @@ def set_customer_info(fieldname, customer, value=""):
 	elif fieldname == 'mobile_no':
 		contact_doc.set('phone_nos', [{ 'phone': value, 'is_primary_mobile_no': 1}])
 		frappe.db.set_value('Customer', customer, 'mobile_no', value)
+	elif fieldname == 'territory':
+		frappe.db.set_value('Customer', customer, 'territory', value)
 	contact_doc.save()
