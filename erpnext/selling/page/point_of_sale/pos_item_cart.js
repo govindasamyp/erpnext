@@ -337,22 +337,34 @@ erpnext.PointOfSale.ItemCart = class {
 				frappe.db.get_value('Customer', customer, ["email_id", "mobile_no","territory", "image", "loyalty_program"]).then(({ message }) => {
 					const { loyalty_program } = message;
 					// if loyalty program then fetch loyalty points too
-					if (loyalty_program) {
-						frappe.call({
-							method: "erpnext.accounts.doctype.loyalty_program.loyalty_program.get_loyalty_program_details_with_points",
-							args: { customer, loyalty_program, "silent": true },
-							callback: (r) => {
-								const { loyalty_points, conversion_factor } = r.message;
-								if (!r.exc) {
-									this.customer_info = { ...message, customer, loyalty_points, conversion_factor };
-									resolve();
-								}
+					
+					frappe.call({
+						method: "rpricemill.custom.get_customer_data",
+						args: { customer : customer, company:loyalty_program, freeze: true},
+						callback: (r) => {
+							const { total_unpaid } = r.message;
+							if (!r.exc) {
+								this.customer_info = { ...message,total_unpaid };
 							}
-						});
-					} else {
-						this.customer_info = { ...message, customer };
-						resolve();
-					}
+							if (loyalty_program) {
+								frappe.call({
+									method: "erpnext.accounts.doctype.loyalty_program.loyalty_program.get_loyalty_program_details_with_points",
+									args: { customer, loyalty_program, "silent": true },
+									callback: (r) => {
+										const { loyalty_points, conversion_factor } = r.message;
+										if (!r.exc) {
+											this.customer_info = { ...message, customer, loyalty_points, conversion_factor,total_unpaid };
+											resolve();
+										}
+									}
+								});
+							} else {
+								this.customer_info = { ...message, customer,total_unpaid };	
+								resolve();
+							}
+						}
+
+					});
 				});
 			});
 		} else {
@@ -835,6 +847,7 @@ erpnext.PointOfSale.ItemCart = class {
 					<div class="loyalty_program-field"></div>
 					<div class="loyalty_points-field"></div>
 					<div class="territory-field"></div>
+					<div class="total_unpaid-field"></div>
 				</div>
 				<div class="transactions-label">Recent Transactions</div>`
 			);
@@ -888,7 +901,13 @@ erpnext.PointOfSale.ItemCart = class {
 			label: __('Loyalty Points'),
 			fieldtype: 'Data',
 			read_only: 1
-		}, 
+		},{
+			fieldname: 'total_unpaid',
+			label: __('Outstanding'),
+			fieldtype: 'Data',
+			read_only: 1
+		}
+
 	];
 
 		const me = this;
@@ -966,7 +985,7 @@ erpnext.PointOfSale.ItemCart = class {
 					transaction_container.append(
 						`<div class="invoice-wrapper" data-invoice-name="${escape(invoice.name)}">
 						<div class="invoice-name-date">
-							<div class="invoice-name">${invoice.name}</div>
+							<div class="invoice-name">${invoice.name}  ${invoice.branch}</div>
 							<div class="invoice-date">${posting_datetime}    ${invoice.day_count}</div>
 						</div>
 						<div class="invoice-total-status">
