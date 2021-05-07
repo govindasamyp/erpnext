@@ -985,7 +985,7 @@ erpnext.PointOfSale.ItemCart = class {
 					transaction_container.append(
 						`<div class="invoice-wrapper" data-invoice-name="${escape(invoice.name)}">
 						<div class="invoice-name-date">
-							<div class="invoice-name">${invoice.name}  ${invoice.branch}</div>
+							<div class="invoice-name">${invoice.name}  ${invoice.branch} ${invoice.abbrivation}</div>
 							<div class="invoice-date">${posting_datetime}    ${invoice.day_count}</div>
 						</div>
 						<div class="invoice-total-status">
