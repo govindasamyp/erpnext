@@ -29,8 +29,7 @@ def _execute(filters=None):
 	for d in item_list:
 		weight = frappe.get_list("Item",{"name":d.item_code},["weight_uom","weight_per_unit"])
 		if (d.parent, d.item_code) not in added_item:
-			row = [d.gst_hsn_code, d.description, d.stock_uom, d.stock_qty,weight[0]["weight_uom"],d.stock_qty * weight[0]["weight_per_unit"]]
-			total_tax = 0
+			row = [d.gst_hsn_code, d.description, d.stock_uom, d.stock_qty,weight[0]["weight_uom"],d.stock_qty * weight[0]["weight_per_unit"]]			total_tax = 0
 			for tax in tax_columns:
 				item_tax = itemised_tax.get((d.parent, d.item_code), {}).get(tax, {})
 				total_tax += flt(item_tax.get("tax_amount", 0))
