@@ -199,7 +199,7 @@ class Gstr1Report(object):
 		self.item_tax_rate = frappe._dict()
 
 		items = frappe.db.sql("""
-			select item_code, parent, taxable_value, item_tax_rate
+			select item_code, parent, taxable_value, base_net_amount, item_tax_rate
 			from `tab%s Item`
 			where parent in (%s)
 		""" % (self.doctype, ', '.join(['%s']*len(self.invoices))), tuple(self.invoices), as_dict=1)
@@ -207,7 +207,7 @@ class Gstr1Report(object):
 		for d in items:
 			if d.item_code not in self.invoice_items.get(d.parent, {}):
 				self.invoice_items.setdefault(d.parent, {}).setdefault(d.item_code,
-					sum(i.get('taxable_value', 0) for i in items
+					sum((i.get('taxable_value', 0) or i.get('base_net_amount', 0)) for i in items
 						if i.item_code == d.item_code and i.parent == d.parent))
 
 				item_tax_rate = {}
@@ -257,16 +257,17 @@ class Gstr1Report(object):
 
 						for item_code, tax_amounts in item_wise_tax_detail.items():
 							tax_rate = tax_amounts[0]
-							if tax_rate:
-								if cgst_or_sgst:
-									tax_rate *= 2
-									if parent not in self.cgst_sgst_invoices:
-										self.cgst_sgst_invoices.append(parent)
+							# if tax_rate:
+							if cgst_or_sgst:
+								tax_rate *= 2
+								if parent not in self.cgst_sgst_invoices:
+									self.cgst_sgst_invoices.append(parent)
 
-								rate_based_dict = self.items_based_on_tax_rate\
-									.setdefault(parent, {}).setdefault(tax_rate, [])
-								if item_code not in rate_based_dict:
-									rate_based_dict.append(item_code)
+							rate_based_dict = self.items_based_on_tax_rate\
+								.setdefault(parent, {}).setdefault(tax_rate, [])
+							if item_code not in rate_based_dict:
+								rate_based_dict.append(item_code)
+							# Include zero tax rate also
 					except ValueError:
 						continue
 		if unidentified_gst_accounts:
@@ -561,7 +562,7 @@ def get_json(filters, report_name, data):
 
 	fp = "%02d%s" % (getdate(filters["to_date"]).month, getdate(filters["to_date"]).year)
 
-	gst_json = {"gstin": "", "version": "GST2.2.9",
+	gst_json = {"version": "GST2.2.9",
 		"hash": "hash", "gstin": gstin, "fp": fp}
 
 	res = {}
