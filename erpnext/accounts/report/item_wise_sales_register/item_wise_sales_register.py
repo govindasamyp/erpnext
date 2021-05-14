@@ -392,7 +392,7 @@ def get_items(filters, additional_query_columns):
 			`tabSales Invoice`.update_stock, `tabSales Invoice Item`.uom, `tabSales Invoice Item`.qty {0}
 		from `tabSales Invoice`, `tabSales Invoice Item`
 		where `tabSales Invoice`.name = `tabSales Invoice Item`.parent
-			and `tabSales Invoice`.docstatus = 1 {1}
+			and `tabSales Invoice Item`.`item_name` not in ('Rice Fright', 'Opening Invoice Item') and `tabSales Invoice`.docstatus = 1 {1}
 		""".format(additional_query_columns or '', conditions), filters, as_dict=1) #nosec
 
 def get_delivery_notes_against_sales_order(item_list):
