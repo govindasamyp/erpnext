@@ -71,10 +71,6 @@ erpnext.PointOfSale.Controller = class {
 				})
 			});
 		}
-		const pos_profile_query = {
-			query: 'erpnext.accounts.doctype.pos_profile.pos_profile.pos_profile_query',
-			filters: {}
-		}
 		const dialog = new frappe.ui.Dialog({
 			title: __('Create POS Opening Entry'),
 			static: true,
