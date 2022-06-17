@@ -461,8 +461,7 @@ def get_nested_links(link_doctype, link_name, ignore_permissions=False):
 @frappe.validate_and_sanitize_search_inputs
 def get_customer_list(doctype, txt, searchfield, start, page_len, filters=None):
 	from erpnext.controllers.queries import get_fields
-
-	fields = ["name", "customer_name", "customer_group", "territory"]
+	fields = ["name", "customer_name", "customer_group", "territory", "mobile_search"]
 
 	if frappe.db.get_default("cust_master_name") == "Customer Name":
 		fields = ["name", "customer_group", "territory"]
@@ -481,18 +480,14 @@ def get_customer_list(doctype, txt, searchfield, start, page_len, filters=None):
 		select %s
 		from `tabCustomer`
 		where docstatus < 2
-			and (%s like %s or customer_name like %s)
+			and (%s like %s or customer_name like %s or mobile_search like %s)
 			{match_conditions}
 		order by
 			case when name like %s then 0 else 1 end,
 			case when customer_name like %s then 0 else 1 end,
 			name, customer_name limit %s, %s
-		""".format(
-			match_conditions=match_conditions
-		)
-		% (", ".join(fields), searchfield, "%s", "%s", "%s", "%s", "%s", "%s"),
-		("%%%s%%" % txt, "%%%s%%" % txt, "%%%s%%" % txt, "%%%s%%" % txt, start, page_len),
-	)
+		""".format(match_conditions=match_conditions) % (", ".join(fields), searchfield, "%s", "%s", "%s", "%s", "%s", "%s", "%s"),
+		("%%%s%%" % txt, "%%%s%%" % txt, "%%%s%%" % txt, "%%%s%%" % txt, "%%%s%%" % txt, start, page_len))
 
 
 def check_credit_limit(customer, company, ignore_outstanding_sales_order=False, extra_amount=0):

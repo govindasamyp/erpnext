@@ -30,6 +30,10 @@ erpnext.PointOfSale.Controller = class {
 				options: "Mode of Payment", reqd: 1
 			},
 			{
+				fieldname: "previous_balance", fieldtype: "Currency",
+				in_list_view: 1, label: "Previous Balance"
+			},
+			{
 				fieldname: "opening_amount", fieldtype: "Currency",
 				in_list_view: 1, label: "Opening Amount",
 				options: "company:company_currency",
@@ -48,12 +52,23 @@ erpnext.PointOfSale.Controller = class {
 			const pos_profile = dialog.fields_dict.pos_profile.get_value();
 			if (!pos_profile) return;
 			frappe.db.get_doc("POS Profile", pos_profile).then(({ payments }) => {
-				dialog.fields_dict.balance_details.df.data = [];
-				payments.forEach(pay => {
-					const { mode_of_payment } = pay;
-					dialog.fields_dict.balance_details.df.data.push({ mode_of_payment, opening_amount: '0' });
-				});
-				dialog.fields_dict.balance_details.grid.refresh();
+				frappe.call({
+					method: 'rpricemill.custom.get_all_balances',
+					args: {'pos_profile': pos_profile},
+					freeze: true,
+					callback: function(r) {
+						debugger;
+						const balances = r.message;
+					
+						dialog.fields_dict.balance_details.df.data = [];
+						payments.forEach(pay => {
+							const { mode_of_payment } = pay;
+
+							dialog.fields_dict.balance_details.df.data.push({ mode_of_payment, previous_balance: balances[mode_of_payment], opening_amount: 0 });
+						});
+						dialog.fields_dict.balance_details.grid.refresh();
+					} 
+				})
 			});
 		}
 		const dialog = new frappe.ui.Dialog({

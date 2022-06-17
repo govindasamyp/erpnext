@@ -23,19 +23,13 @@ class POSClosingEntry(StatusUpdater):
 	def validate_pos_invoices(self):
 		invalid_rows = []
 		for d in self.pos_transactions:
-			invalid_row = {"idx": d.idx}
-			pos_invoice = frappe.db.get_values(
-				"POS Invoice",
-				d.pos_invoice,
-				["consolidated_invoice", "pos_profile", "docstatus", "owner"],
-				as_dict=1,
-			)[0]
-			if pos_invoice.consolidated_invoice:
-				invalid_row.setdefault("msg", []).append(
-					_("POS Invoice is {}").format(frappe.bold("already consolidated"))
-				)
-				invalid_rows.append(invalid_row)
-				continue
+			invalid_row = {'idx': d.idx}
+			pos_invoice = frappe.db.get_values("POS Invoice", d.pos_invoice,
+				["consolidated_invoice", "pos_profile", "docstatus", "owner"], as_dict=1)[0]
+			# if pos_invoice.consolidated_invoice:
+			# 	invalid_row.setdefault('msg', []).append(_('POS Invoice is {}').format(frappe.bold("already consolidated")))
+			# 	invalid_rows.append(invalid_row)
+			# 	continue
 			if pos_invoice.pos_profile != self.pos_profile:
 				invalid_row.setdefault("msg", []).append(
 					_("POS Profile doesn't matches {}").format(frappe.bold(self.pos_profile))
@@ -71,7 +65,9 @@ class POSClosingEntry(StatusUpdater):
 		)
 
 	def on_submit(self):
-		consolidate_pos_invoices(closing_entry=self)
+		self.set_status(update=True, status='Submitted')
+		self.update_opening_entry()
+		# consolidate_pos_invoices(closing_entry=self)
 
 	def on_cancel(self):
 		unconsolidate_pos_invoices(closing_entry=self)
@@ -103,15 +99,10 @@ def get_pos_invoices(start, end, pos_profile, user):
 	from
 		`tabPOS Invoice`
 	where
-		owner = %s and docstatus = 1 and pos_profile = %s and ifnull(consolidated_invoice,'') = ''
-	""",
-		(user, pos_profile),
-		as_dict=1,
-	)
+		owner = %s and docstatus = 1 and pos_profile = %s
+	""", (user, pos_profile), as_dict=1)
 
-	data = list(
-		filter(lambda d: get_datetime(start) <= get_datetime(d.timestamp) <= get_datetime(end), data)
-	)
+	data = list(filter(lambda d: get_datetime(start) <= get_datetime(d.timestamp) <= get_datetime(end), data))
 	# need to get taxes and payments so can't avoid get_doc
 	data = [frappe.get_doc("POS Invoice", d.name).as_dict() for d in data]
 

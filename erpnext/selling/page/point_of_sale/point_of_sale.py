@@ -314,15 +314,17 @@ def set_customer_info(fieldname, customer, value=""):
 		new_contact.set("links", [{"link_doctype": "Customer", "link_name": customer}])
 		new_contact.save()
 		contact = new_contact.name
-		frappe.db.set_value("Customer", customer, "customer_primary_contact", contact)
+		frappe.db.set_value('Customer', customer, 'customer_primary_contact', contact)
 
-	contact_doc = frappe.get_doc("Contact", contact)
-	if fieldname == "email_id":
-		contact_doc.set("email_ids", [{"email_id": value, "is_primary": 1}])
-		frappe.db.set_value("Customer", customer, "email_id", value)
-	elif fieldname == "mobile_no":
-		contact_doc.set("phone_nos", [{"phone": value, "is_primary_mobile_no": 1}])
-		frappe.db.set_value("Customer", customer, "mobile_no", value)
+	contact_doc = frappe.get_doc('Contact', contact)
+	if fieldname == 'email_id':
+		contact_doc.set('email_ids', [{ 'email_id': value, 'is_primary': 1}])
+		frappe.db.set_value('Customer', customer, 'email_id', value)
+	elif fieldname == 'mobile_no':
+		contact_doc.set('phone_nos', [{ 'phone': value, 'is_primary_mobile_no': 1}])
+		frappe.db.set_value('Customer', customer, 'mobile_no', value)
+	elif fieldname == 'territory':
+		frappe.db.set_value('Customer', customer, 'territory', value)
 	contact_doc.save()
 
 

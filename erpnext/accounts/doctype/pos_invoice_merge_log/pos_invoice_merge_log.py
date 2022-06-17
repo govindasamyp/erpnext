@@ -171,7 +171,7 @@ class POSInvoiceMergeLog(Document):
 
 			for tax in doc.get("taxes"):
 				found = False
-				for t in taxes:
+				for t in doc.taxes:
 					if t.account_head == tax.account_head and t.cost_center == tax.cost_center:
 						t.tax_amount = flt(t.tax_amount) + flt(tax.tax_amount_after_discount_amount)
 						t.base_tax_amount = flt(t.base_tax_amount) + flt(tax.base_tax_amount_after_discount_amount)

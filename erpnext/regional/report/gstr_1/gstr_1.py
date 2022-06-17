@@ -415,6 +415,7 @@ class Gstr1Report(object):
 
 						for item_code, tax_amounts in item_wise_tax_detail.items():
 							tax_rate = tax_amounts[0]
+							# Comment tax rate if clause here for some bug
 							if tax_rate:
 								if cgst_or_sgst:
 									tax_rate *= 2

@@ -246,6 +246,16 @@ class SalesInvoice(SellingController):
 	def on_submit(self):
 		self.validate_pos_paid_amount()
 
+		if self.is_pos == 1 and self.pos_profile:
+			branch = frappe.db.get_value('POS Profile', self.pos_profile, 'branch')
+			cost_center = frappe.db.get_value('POS Profile', self.pos_profile, 'cost_center')
+			self.branch = branch
+			self.cost_center = cost_center
+		
+			for item in self.get("items"):
+				item.set('branch', branch)
+				item.set('cost_center', cost_center)
+
 		if not self.auto_repeat:
 			frappe.get_doc("Authorization Control").validate_approving_authority(
 				self.doctype, self.company, self.base_grand_total, self
@@ -349,7 +359,7 @@ class SalesInvoice(SellingController):
 				frappe.throw(msg, title=_("Not Allowed"))
 
 	def before_cancel(self):
-		self.check_if_consolidated_invoice()
+		# self.check_if_consolidated_invoice()
 
 		super(SalesInvoice, self).before_cancel()
 		self.update_time_sheet(None)

@@ -25,9 +25,9 @@ def setup(company=None, patch=True):
 
 
 # TODO: for all countries
-def setup_company_independent_fixtures(patch=False):
+def setup_company_independent_fixtures():
 	make_custom_fields()
-	make_property_setters(patch=patch)
+	make_property_setters()
 	add_permissions()
 	add_custom_roles_for_reports()
 	frappe.enqueue("erpnext.regional.india.setup.add_hsn_sac_codes", now=frappe.flags.in_test)

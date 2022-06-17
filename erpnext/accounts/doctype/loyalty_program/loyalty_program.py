@@ -129,11 +129,9 @@ def validate_loyalty_points(ref_doc, points_to_redeem):
 	else:
 		loyalty_program = frappe.db.get_value("Customer", ref_doc.customer, ["loyalty_program"])
 
-	if (
-		loyalty_program
-		and frappe.db.get_value("Loyalty Program", loyalty_program, ["company"]) != ref_doc.company
-	):
-		frappe.throw(_("The Loyalty Program isn't valid for the selected company"))
+	# if loyalty_program and frappe.db.get_value("Loyalty Program", loyalty_program, ["company"]) !=\
+	# 	ref_doc.company:
+	# 	frappe.throw(_("The Loyalty Program isn't valid for the selected company"))
 
 	if loyalty_program and points_to_redeem:
 		loyalty_program_details = get_loyalty_program_details_with_points(
